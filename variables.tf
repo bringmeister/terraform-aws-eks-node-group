@@ -66,6 +66,12 @@ variable "subnet_ids" {
   type        = list(string)
 }
 
+variable "node_role_explicit_self_trust" {
+  description = "Toggle for creating an explicit statement in the trust policy so that the Node Group IAM role can assume itself."
+  type        = bool
+  default     = true
+}
+
 variable "existing_workers_role_policy_arns" {
   type        = list(string)
   default     = []

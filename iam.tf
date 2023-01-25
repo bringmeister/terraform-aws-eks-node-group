@@ -1,8 +1,14 @@
 locals {
   aws_policy_prefix = format("arn:%s:iam::aws:policy", join("", data.aws_partition.current.*.partition))
+  node_role_arn     = format("arn:aws:iam::%s:role/%s", join("", data.aws_caller_identity.current.*.account_id), module.label.id)
+  account_principal = format("arn:aws:iam::%s:root", join("", data.aws_caller_identity.current.*.account_id))
 }
 
 data "aws_partition" "current" {
+  count = local.enabled ? 1 : 0
+}
+
+data "aws_caller_identity" "current" {
   count = local.enabled ? 1 : 0
 }
 
@@ -16,6 +22,26 @@ data "aws_iam_policy_document" "assume_role" {
     principals {
       type        = "Service"
       identifiers = ["ec2.amazonaws.com"]
+    }
+  }
+
+  dynamic "statement" {
+    for_each = var.node_role_explicit_self_trust ? [1] : []
+    content {
+      sid = "AllowSelfAssume"
+      effect  = "Allow"
+      actions = ["sts:AssumeRole"]
+
+      principals {
+        type        = "AWS"
+        identifiers = [local.account_principal]
+      }
+
+      condition {
+        test     = "ArnEquals"
+        variable = "aws:PrincipalArn"
+        values   = [local.node_role_arn]
+      }
     }
   }
 }
